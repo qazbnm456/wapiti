@@ -1,0 +1,48 @@
+.\" Man page for the Wapiti project.
+.TH wapiti-cookie 1 http://wapiti.sourceforge.net/ "Version 2.3.0" http://wapiti.sourceforge.net/
+.SH NAME
+wapiti-cookie \- A Wapiti utility to fetch cookies from a webpage and store them in the Wapiti JSON format.
+.SH SYNOPSIS
+.B wapiti-cookie
+[\-p PROXY_URL] COOKIE_FILE URL [ARG1=VAL1] ...
+.SH DESCRIPTION
+wapiti-cookie can be used to fill a web-form from your terminal and obtain the cookies sent by the remote server.
+Cookie information is stored in JSON format in the COOKIE_FILE given as the first parameter.
+.br
+Parameters sent through HTTP POST must be given in the form ARG_NAME=ARG_VALUE without whitespaces.
+If the parameter name or its value contains some special bash characters, escape them or put the whole
+ARG_NAME=ARG_VALUE between (double-)quotes.
+.br
+Those cookies can be then loaded by Wapiti using the \-c option.
+.SH OPTIONS
+.TP
+\fB\-p\fR, \fB\-\-proxy\fR=\fIPROXY_URL\fR
+To specify a proxy. Currently supported proxies are HTTP and HTTPS.
+.br
+This option can be called twice to specify the HTTP and the HTTPS proxies.
+.br
+Example:
+.br
+.RS
+.RS
+\-p http://proxy:port/
+.RE
+.RE
+.SH LICENCE
+.B Wapiti
+is covered by the GNU General Public License (GPL), version 2.
+.br
+Please read the COPYING file for more information. 
+.SH COPYRIGHT
+Copyright (c) 2006-2013 Nicolas Surribas.
+.SH AUTHORS
+Nicolas Surribas
+.br
+David del Pozo
+.br
+Alberto Pastor
+.SH BUG REPORTS
+If you find a bug in Wapiti please report it to http://sourceforge.net/tracker/?group_id=168625
+.SH SEE ALSO
+The README file that comes with Wapiti gives more detailed information on the options.
+.\" Vim for teh win!

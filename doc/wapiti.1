@@ -1,0 +1,189 @@
+.\" Man page for the Wapiti project.
+.TH wapiti 1 http://wapiti.sourceforge.net/ "Version 2.3.0" http://wapiti.sourceforge.net/
+.SH NAME
+Wapiti \- A web application vulnerability scanner in Python.
+.SH SYNOPSIS
+.B wapiti
+ROOT_URL [OPTIONS]
+.SH DESCRIPTION
+Wapiti allows you to audit the security of your web applications.
+.br
+It performs "black-box" scans, i.e. it does not study the source code
+of the application but will scans the webpages of the deployed
+webapp, looking for scripts and forms where it can inject data.
+.br
+Once it gets this list, Wapiti acts like a fuzzer, injecting payloads
+to see if a script is vulnerable.
+.SH OPTIONS
+.TP
+\fB\-s\fR, \fB\-\-start\fR=\fIURL\fR
+To specify an url to start with. This option can be called several times.
+.br
+Wapiti will browse these links to fond more URLs even if the specified link is not in the scope.
+.TP
+\fB\-x\fR, \fB\-\-exclude\fR=\fIURL\fR
+To exclude an url from the scan (for example logout scripts). This option can be called several times to exclude several URLs.
+.br
+Wildcards (*) can be used in URLs as basic regex.
+.br
+Example :
+.RS
+.RS
+\-x "http://server/base/?page=*&module=test"
+.RE
+.br
+or
+.br
+.RS
+\-x http://server/base/admin/* to exclude a directory
+.RE
+.RE
+.TP
+\fB\-b\fR, \fB\-\-scope\fR=\fISCOPE\fR
+Set the scope of the scan:
+.br
+.RS
+.RS
+page : to analyse only the page given as the root URL.
+.br
+folder : to analyse all the URLs under the root URL passed to Wapiti (default).
+.br
+domain : to analyse all the links to the pages which are in the
+same domain as the URL passed to Wapiti.
+.RE
+.RE
+.TP
+\fB\-p\fR, \fB\-\-proxy\fR=\fIPROXY_URL\fR
+To specify a proxy. Currently supported proxies are HTTP and HTTPS.
+.br
+This option can be called twice to specify the HTTP and the HTTPS proxies.
+.br
+Example:
+.br
+.RS
+.RS
+\-p http://proxy:port/
+.RE
+.RE
+.TP
+\fB\-c\fR, \fB\-\-cookie\fR=\fICOOKIE\fR
+To import cookies to use for the scan. The COOKIE file must be in JSON format.
+.br
+Cookies can be grabbed using the cookie.py and getcookie.py utilities (net directory).
+.TP
+\fB\-t\fR, \fB\-\-timeout\fR=\fITIMEOUT\fR
+Set the timeout (maximum time in seconds to wait for the server to send a response).
+.TP
+\fB\-a\fR, \fB\-\-auth\fR=\fILOGIN%PASSWORD\fR
+Set credentials for HTTP authentication ('%' is used as a separator).
+.TP
+\fB\-\-auth\-method\fR=\fIMETHOD\fR
+If the server requires an authentication, set the authentication method to use.
+.br
+Currently supported methods are (some require additional modules to install):
+.br
+.RS
+.RS
+basic
+.br
+digest
+.br
+kerberos
+.br
+ntlm
+.RE
+.RE
+.TP
+\fB\-r\fR, \fB\-\-remove\fR=\fIPARAM\fR
+Automatically remove the parameter PARAM (and its values) from the URLs.
+.TP
+\fB\-n\fR, \fB\-\-nice\fR=\fILIMIT\fR
+Define a limit of URLs to browse with the same pattern (ie, the maximum number of unique values for the same parameter).
+.br
+Use this option to prevent endless loops during scan. LIMIT must be greater than 0.
+.TP
+\fB\-m\fR, \fB\-\-module\fR=\fIMODULE_OPTIONS\fR
+Set the modules (and HTTP methods for each module) to use for attacks.
+.br
+Prefix a module name with a dash to deactivate the related module.
+.br
+To only browse the target (without sending any payloads), deactivate every module with \-m "\-all".
+.br
+If you don't specify the HTTP methods, GET and POST will be used.
+.br
+Example:
+.br
+.RS
+.RS
+\-m "\-all,xss:get,exec:post"
+.RE
+.RE
+.TP
+\fB\-i\fR, \fB\-\-continue\fR=\fIFILE\fR
+This parameter indicates to Wapiti to resume the previous scan saved in the specified XML status file.
+.br
+The file name is optional, if it is not specified, Wapiti takes the default file from the "scans" folder.
+.TP
+\fB\-k\fR, \fB\-\-attack\fR=\fIFILE\fR
+This parameter indicates to Wapiti to resume the attacks without scanning again, loading the scan status from the specified XML status file.
+.br
+The file name is optional, if it is not specified, Wapiti takes the default
+file from the "scans" folder.
+.TP
+\fB\-u\fR, \fB\-\-color\fR
+Use colors to highlight vulnerabilities and anomalies in output.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR=\fILEVEL\fR
+Set the verbosity level to LEVEL.
+.br
+0: quiet (default), 1: print each URL, 2: print every attack.
+.TP
+\fB\-f\fR, \fB\-\-format\fR=\fITYPE\fR
+Set the format type for the report to TYPE. Currently supported formats are :
+.br
+.RS
+.RS
+json: Report in JSON format
+.br
+html : Report in HTML format (default)
+.br
+openvas : Report in OpenVAS XML format
+.br
+txt : Report un plain text (UTF-8)
+.br
+vulneranet: Report in VulneraNET XML format
+.br
+xml : Report in XML format
+.RE
+.RE
+.TP
+\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
+Write the report to FILE.
+.br
+If the selected report format is "html", this parameter will be used as a directory name.
+.TP
+\fB\-\-verify\-ssl\fR=\fI<0|1>\fR
+This parameter indicates whether Wapiti must check SSL certificats.
+.br
+Default is to verify certificates.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+To print this usage message.
+.SH LICENCE
+.B Wapiti
+is covered by the GNU General Public License (GPL), version 2.
+.br
+Please read the COPYING file for more information. 
+.SH COPYRIGHT
+Copyright (c) 2006-2013 Nicolas Surribas.
+.SH AUTHORS
+Nicolas Surribas
+.br
+David del Pozo
+.br
+Alberto Pastor
+.SH BUG REPORTS
+If you find a bug in Wapiti please report it to http://sourceforge.net/tracker/?group_id=168625
+.SH SEE ALSO
+The README file that comes with Wapiti gives more detailed information on the options.
+.\" Vim for teh win!
