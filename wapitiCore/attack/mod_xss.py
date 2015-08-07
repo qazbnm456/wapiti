@@ -204,6 +204,18 @@ class mod_xss(Attack):
                                 self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
                                 # No more payload injection
                                 break
+                            else if "detected" in subprocess.subprocess.check_output(('../../bin/phantomjs', os.path.join(self.CONFIG_DIR, 'xss.js'), os.path.join(self.CONFIG_DIR, 'test'))).lower(): # testing PhantomJS-based XSS detecting mechanism
+                                self.SUCCESSFUL_XSS[code] = payload
+                                self.logVuln(category=Vulnerability.XSS,
+                                             level=Vulnerability.HIGH_LEVEL,
+                                             request=evil_req,
+                                             parameter=param_name,
+                                             info="XSS vulnerability found via injection in the query string using PhantomJS")
+
+                                self.logR(Vulnerability.MSG_QS_INJECT, self.MSG_VULN, page)
+                                self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
+                                # No more payload injection
+                                break
 
                         elif http_code == "500" and not returned500:
                             self.logAnom(category=Anomaly.ERROR_500,
