@@ -25,6 +25,9 @@ from wapitiCore.language.vulnerability import Vulnerability, Anomaly
 from wapitiCore.net import HTTP
 import re
 
+import subprocess
+import tempfile
+import urllib
 
 class mod_xss(Attack):
     """This class implements a cross site scripting attack"""
@@ -165,7 +168,6 @@ class mod_xss(Attack):
                     data, http_code = self.HTTP.send(test_req, headers=headers).getPageCode()
                 except requests.exceptions.Timeout:
                     data = ""
-
                 if code in data:
                     # Simple text injection worked, let's try with JS code
                     payloads = self.generate_payloads(data, code)
@@ -190,7 +192,6 @@ class mod_xss(Attack):
                                          info=Anomaly.MSG_PARAM_TIMEOUT.format(param_name))
                             timeouted = True
                         param_name = "QUERY_STRING"
-
                         if self._validXSSContentType(evil_req) and dat is not None and len(dat) > 1:
                             if payload.lower() in dat.lower():
                                 self.SUCCESSFUL_XSS[code] = payload
@@ -204,18 +205,22 @@ class mod_xss(Attack):
                                 self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
                                 # No more payload injection
                                 break
-                            else if "detected" in subprocess.subprocess.check_output(('../../bin/phantomjs', os.path.join(self.CONFIG_DIR, 'xss.js'), os.path.join(self.CONFIG_DIR, 'test'))).lower(): # testing PhantomJS-based XSS detecting mechanism
-                                self.SUCCESSFUL_XSS[code] = payload
-                                self.logVuln(category=Vulnerability.XSS,
-                                             level=Vulnerability.HIGH_LEVEL,
-                                             request=evil_req,
-                                             parameter=param_name,
-                                             info="XSS vulnerability found via injection in the query string using PhantomJS")
+                            # testing PhantomJS-based XSS detecting mechanism
+                            with tempfile.NamedTemporaryFile() as temp:
+                                temp.write(dat)
+                                temp.flush()
+                                if "detected" in subprocess.check_output(' '.join(['/Users/Lobsiinvok/Downloads/wapiti-code/bin/phantomjs', os.path.join(self.CONFIG_DIR, 'xss.js'), temp.name]), shell=True).lower():
+                                    self.SUCCESSFUL_XSS[code] = payload
+                                    self.logVuln(category=Vulnerability.XSS,
+                                                 level=Vulnerability.HIGH_LEVEL,
+                                                 request=evil_req,
+                                                 parameter=param_name,
+                                                 info="XSS vulnerability found via injection in the query string using PhantomJS")
 
-                                self.logR(Vulnerability.MSG_QS_INJECT, self.MSG_VULN, page)
-                                self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
-                                # No more payload injection
-                                break
+                                    self.logR(Vulnerability.MSG_QS_INJECT, self.MSG_VULN, page)
+                                    self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
+                                    # No more payload injection
+                                    break
 
                         elif http_code == "500" and not returned500:
                             self.logAnom(category=Anomaly.ERROR_500,
@@ -259,7 +264,8 @@ class mod_xss(Attack):
 
                             evil_req = HTTP.HTTPResource(page + "?" + self.HTTP.encode(params_list))
                             if self.verbose == 2:
-                                print(u"+ {0}".format(evil_req))
+                                print u"+ {0}".format(evil_req)
+                                # print(urllib.unquote(u"+ {0}".format(evil_req)).decode('utf8'))
                             try:
                                 dat, http_code = self.HTTP.send(evil_req, headers=headers).getPageCode()
                             except requests.exceptions.Timeout:
@@ -295,6 +301,23 @@ class mod_xss(Attack):
                                     self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
                                     # stop trying payloads and jump to the next parameter
                                     break
+                                # testing PhantomJS-based XSS detecting mechanism
+                                with tempfile.NamedTemporaryFile() as temp:
+                                    temp.write(dat)
+                                    temp.flush()
+                                    if "detected" in subprocess.check_output(' '.join(['/Users/Lobsiinvok/Downloads/wapiti-code/bin/phantomjs', os.path.join(self.CONFIG_DIR, 'xss.js'), temp.name]), shell=True).lower():
+                                        self.SUCCESSFUL_XSS[code] = payload
+                                        self.logVuln(category=Vulnerability.XSS,
+                                                     level=Vulnerability.HIGH_LEVEL,
+                                                     request=evil_req,
+                                                     parameter=param_name,
+                                                     info="XSS vulnerability found via injection in the query string using PhantomJS")
+
+                                        self.logR(Vulnerability.MSG_QS_INJECT, self.MSG_VULN, page)
+                                        self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
+                                        # No more payload injection
+                                        break
+                                
                             elif http_code == "500" and not returned500:
                                 self.logAnom(category=Anomaly.ERROR_500,
                                              level=Anomaly.HIGH_LEVEL,
@@ -464,6 +487,22 @@ class mod_xss(Attack):
                                     print('')
                                     # Stop injecting payloads and move to the next parameter
                                     break
+                                # testing PhantomJS-based XSS detecting mechanism
+                                with tempfile.NamedTemporaryFile() as temp:
+                                    temp.write(dat)
+                                    temp.flush()
+                                    if "detected" in subprocess.check_output(' '.join(['/Users/Lobsiinvok/Downloads/wapiti-code/bin/phantomjs', os.path.join(self.CONFIG_DIR, 'xss.js'), temp.name]), shell=True).lower():
+                                        self.SUCCESSFUL_XSS[code] = payload
+                                        self.logVuln(category=Vulnerability.XSS,
+                                                     level=Vulnerability.HIGH_LEVEL,
+                                                     request=evil_req,
+                                                     parameter=param_name,
+                                                     info="XSS vulnerability found via injection in the query string using PhantomJS")
+
+                                        self.logR(Vulnerability.MSG_QS_INJECT, self.MSG_VULN, page)
+                                        self.logR(Vulnerability.MSG_EVIL_URL, evil_req.url)
+                                        # No more payload injection
+                                        break
                             elif http_code == "500" and not returned500:
                                 self.logAnom(category=Anomaly.ERROR_500,
                                              level=Anomaly.HIGH_LEVEL,
@@ -537,7 +576,7 @@ class mod_xss(Attack):
     # generate a list of payloads based on where in the webpage the js-code will be injected
     def generate_payloads(self, html_code, code):
         # We must keep the original source code because bs gives us something that may differ...
-        soup = BeautifulSoup(html_code)
+        soup = BeautifulSoup(html_code, 'lxml')
         e = []
         self.study(soup, keyword=code, entries=e)
 

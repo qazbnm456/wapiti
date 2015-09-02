@@ -18,7 +18,7 @@ isXSS.value = 0;
 isXSS.msg = 'Safe';
 
 var html_response_file = system.args[1];
-wp.content = fs.read('js-overrides.js') + fs.read(html_response_file);
+wp.content = fs.read('/Users/Lobsiinvok/Downloads/wapiti-code/wapitiCore/config/attacks/js-overrides.js') + fs.read(html_response_file);
 
 isXSS.msg = wp.evaluate(function() {
 	return xss.message;
