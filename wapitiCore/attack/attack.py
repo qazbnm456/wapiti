@@ -84,6 +84,7 @@ class Attack(object):
         self.vulnerablePOST = []
 
         self.verbose = 0
+        self.parser = "BS"
         self.color = 0
 		
         self.fingerprint_flag = False
@@ -94,6 +95,9 @@ class Attack(object):
 
     def setVerbose(self, verbose):
         self.verbose = verbose
+
+    def setParser(self, parser):
+        self.parser = parser
 
     def setColor(self):
         self.color = 1
@@ -160,6 +164,10 @@ class Attack(object):
         self.log(fmt_string, *args)
 
     def attack(self, http_resources, forms):
+        if self.parser == "BS":
+            self.log("[+] Using BeautifulSoup as parser now...")
+        elif self.parser == "lxml":
+            self.log("[+] Using lxml as parser now...")
         if self.doGET is True:
             for http_res in http_resources:
                 url = http_res.url

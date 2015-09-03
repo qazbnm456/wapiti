@@ -84,6 +84,7 @@ class Wapiti(object):
         self.color = 0
         self.verbose = 0
         self.options = None
+        self.parser = "BS"
 
     def __initReport(self):
         for rep_gen_info in self.xml_rep_gen_parser.getReportGenerators():
@@ -129,6 +130,7 @@ class Wapiti(object):
 
         for attack_module in self.attacks:
             attack_module.setVerbose(self.verbose)
+            attack_module.setParser(args.Parser)
             if self.color == 1:
                 attack_module.setColor()
 
@@ -330,6 +332,10 @@ class Wapiti(object):
     def addCustomHeader(self, key, value):
         self.http_engine.addCustomHeader(key, value)
 
+    def setParser(self, parser="BS"):
+        """Setting parser"""
+        self.parser = parser
+
 if __name__ == "__main__":
     doc = _("wapitiDoc")
 
@@ -437,6 +443,9 @@ if __name__ == "__main__":
                             default=1, dest="check_ssl",
                             help='Set SSL check',
                             type=int, choices=[0, 1])
+        parser.add_argument("-P", "--Parser",
+                            help="Set how the scanner should use to parse the website",
+                            choices=['BS', 'lxml'], default="BS")
         parser.add_argument('--version', action='version', version=WAPITI_VERSION)
         parser.add_argument('-h', '--help', action=HelpMessage, nargs=0, help="Show detailed usage")
         args = parser.parse_args()

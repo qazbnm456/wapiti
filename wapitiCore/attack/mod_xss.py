@@ -25,6 +25,7 @@ from wapitiCore.language.vulnerability import Vulnerability, Anomaly
 from wapitiCore.net import HTTP
 import re
 
+from lxml import etree
 import subprocess
 import tempfile
 import urllib
@@ -519,66 +520,114 @@ class mod_xss(Attack):
                 params_list[i][1] = saved_value
 
     @staticmethod
-    def closeNoscript(tag):
+    def closeNoscript(tag, parser):
         """Return a string with each closing parent tags for escaping a noscript"""
         s = ""
-        if tag.findParent("noscript"):
-            curr = tag.parent
-            while True:
-                s += "</{0}>".format(curr.name)
-                if curr.name == "noscript":
-                    break
-                curr = curr.parent
+        if parser == "BS":
+            if tag.findParent("noscript"):
+                curr = tag.parent
+                while True:
+                    s += "</{0}>".format(curr.name)
+                    if curr.name == "noscript":
+                        break
+                    curr = curr.parent
+        elif parser == "lxml":   
+            node = tag.xpath("parent::*[contains(local-name(),'noscript')]")
+            if node is not None and len(node) != 0:
+                s += "</{0}></{1}>".format(node[0].tag, 'noscript')
         return s
 
     # type/name/tag ex: attrval/img/src
     def study(self, bs_node, parent=None, keyword="", entries=[]):
-        #if parent==None:
-        #  print("Keyword is: {0}".format(keyword))
-        if keyword in str(bs_node):
-            if isinstance(bs_node, element.Tag):
-                if keyword in str(bs_node.attrs):
-                    for k, v in bs_node.attrs.items():
+        if self.parser == "BS":
+            if keyword in str(bs_node):
+                if isinstance(bs_node, element.Tag):
+                    if keyword in str(bs_node.attrs):
+                        for k, v in bs_node.attrs.items():
+                            if keyword in v:
+                                # print("Found in attribute value {0} of tag {1}".format(k, bs_node.name))
+                                noscript = self.closeNoscript(bs_node, self.parser)
+                                d = {"type": "attrval", "name": k, "tag": bs_node.name, "noscript": noscript}
+                                if d not in entries:
+                                    entries.append(d)
+                            if keyword in k:
+                                # print("Found in attribute name {0} of tag {1}".format(k, bs_node.name))
+                                noscript = self.closeNoscript(bs_node, self.parser)
+                                d = {"type": "attrname", "name": k, "tag": bs_node.name, "noscript": noscript}
+                                if d not in entries:
+                                    entries.append(d)
+                    elif keyword in bs_node.name:
+                        # print("Found in tag name")
+                        noscript = self.closeNoscript(bs_node, self.parser)
+                        d = {"type": "tag", "value": bs_node.name, "noscript": noscript}
+                        if d not in entries:
+                            entries.append(d)
+                    # recursively search injection points for the same variable
+                    for x in bs_node.contents:
+                        self.study(x, parent=bs_node, keyword=keyword, entries=entries)
+                elif isinstance(bs_node, element.Comment):
+                    # print("Found in comment, tag {0}".format(parent.name))
+                    noscript = self.closeNoscript(bs_node, self.parser)
+                    d = {"type": "comment", "parent": parent.name, "noscript": noscript}
+                    if d not in entries:
+                        entries.append(d)
+                elif isinstance(bs_node, element.NavigableString):
+                    # print("Found in text, tag {0}".format(parent.name))
+                    noscript = self.closeNoscript(bs_node, self.parser)
+                    d = {"type": "text", "parent": parent.name, "noscript": noscript}
+                    if d not in entries:
+                        entries.append(d)
+        elif self.parser == "lxml":
+            found_node = bs_node.xpath("//*[@*[contains(.,'{0}')] or contains(local-name(),'{0}') or text()[contains(.,'{0}')]]".format(keyword))
+            if found_node is not None and len(found_node) != 0:
+                for node in found_node:
+                    if keyword in node.tag:
+                        print("Found in tag name")
+                        noscript = self.closeNoscript(node, self.parser)
+                        d = {"type": "tag", "value": node.tag, "noscript": noscript}
+                        if d not in entries:
+                            entries.append(d)
+                    elif keyword in node.text:
+                        print("Found in text, tag {0}".format(node.tag))
+                        noscript = self.closeNoscript(node, self.parser)
+                        d = {"type": "text", "parent": node.tag, "noscript": noscript}
+                        if d not in entries:
+                            entries.append(d)
+                    for k, v in node.attrib.iteritems():
                         if keyword in v:
-                            # print("Found in attribute value {0} of tag {1}".format(k, bs_node.name))
-                            noscript = self.closeNoscript(bs_node)
-                            d = {"type": "attrval", "name": k, "tag": bs_node.name, "noscript": noscript}
+                            print("Found in attribute value {0} of tag {1}".format(k, node.tag))
+                            noscript = self.closeNoscript(node, self.parser)
+                            d = {"type": "attrval", "name": k, "tag": node.tag, "noscript": noscript}
                             if d not in entries:
                                 entries.append(d)
                         if keyword in k:
-                            # print("Found in attribute name {0} of tag {1}".format(k, bs_node.name))
-                            noscript = self.closeNoscript(bs_node)
-                            d = {"type": "attrname", "name": k, "tag": bs_node.name, "noscript": noscript}
+                            print("Found in attribute name {0} of tag {1}".format(k, node.tag))
+                            noscript = self.closeNoscript(node, self.parser)
+                            d = {"type": "attrname", "name": k, "tag": node.tag, "noscript": noscript}
                             if d not in entries:
                                 entries.append(d)
-                elif keyword in bs_node.name:
-                    # print("Found in tag name")
-                    noscript = self.closeNoscript(bs_node)
-                    d = {"type": "tag", "value": bs_node.name, "noscript": noscript}
-                    if d not in entries:
-                        entries.append(d)
-                # recursively search injection points for the same variable
-                for x in bs_node.contents:
-                    self.study(x, parent=bs_node, keyword=keyword, entries=entries)
-            elif isinstance(bs_node, element.Comment):
-                # print("Found in comment, tag {0}".format(parent.name))
-                noscript = self.closeNoscript(bs_node)
-                d = {"type": "comment", "parent": parent.name, "noscript": noscript}
-                if d not in entries:
-                    entries.append(d)
-            elif isinstance(bs_node, element.NavigableString):
-                # print("Found in text, tag {0}".format(parent.name))
-                noscript = self.closeNoscript(bs_node)
-                d = {"type": "text", "parent": parent.name, "noscript": noscript}
-                if d not in entries:
-                    entries.append(d)
+            else:
+                found_node = bsnode.xpath("//x[comment()[contains(.,'{0}')]]".format(keyword))
+                if found_node is not None and len(found_node) != 0:
+                     for node in found_node:
+                        print("Found in comment, tag {0}".format(parent.name))
+                        noscript = self.closeNoscript(node)
+                        d = {"type": "comment", "parent": node.tag, "noscript": noscript}
+                        if d not in entries:
+                            entries.append(d)
 
     # generate a list of payloads based on where in the webpage the js-code will be injected
     def generate_payloads(self, html_code, code):
         # We must keep the original source code because bs gives us something that may differ...
-        soup = BeautifulSoup(html_code, 'lxml')
+
         e = []
-        self.study(soup, keyword=code, entries=e)
+
+        if self.parser == "BS":
+            soup = BeautifulSoup(html_code, 'lxml')
+            self.study(soup, keyword=code, entries=e)
+        elif self.parser == "lxml":
+            tree = etree.HTML(html_code)
+            self.study(tree, keyword=code, entries=e)
 
         payloads = []
 
