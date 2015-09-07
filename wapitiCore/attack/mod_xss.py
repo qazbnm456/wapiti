@@ -582,26 +582,26 @@ class mod_xss(Attack):
             if found_node is not None and len(found_node) != 0:
                 for node in found_node:
                     if keyword in node.tag:
-                        print("Found in tag name")
+                        # print("Found in tag name")
                         noscript = self.closeNoscript(node, self.parser)
                         d = {"type": "tag", "value": node.tag, "noscript": noscript}
                         if d not in entries:
                             entries.append(d)
                     elif keyword in node.text:
-                        print("Found in text, tag {0}".format(node.tag))
+                        # print("Found in text, tag {0}".format(node.tag))
                         noscript = self.closeNoscript(node, self.parser)
                         d = {"type": "text", "parent": node.tag, "noscript": noscript}
                         if d not in entries:
                             entries.append(d)
                     for k, v in node.attrib.iteritems():
                         if keyword in v:
-                            print("Found in attribute value {0} of tag {1}".format(k, node.tag))
+                            # print("Found in attribute value {0} of tag {1}".format(k, node.tag))
                             noscript = self.closeNoscript(node, self.parser)
                             d = {"type": "attrval", "name": k, "tag": node.tag, "noscript": noscript}
                             if d not in entries:
                                 entries.append(d)
                         if keyword in k:
-                            print("Found in attribute name {0} of tag {1}".format(k, node.tag))
+                            # print("Found in attribute name {0} of tag {1}".format(k, node.tag))
                             noscript = self.closeNoscript(node, self.parser)
                             d = {"type": "attrname", "name": k, "tag": node.tag, "noscript": noscript}
                             if d not in entries:
@@ -610,7 +610,7 @@ class mod_xss(Attack):
                 found_node = bsnode.xpath("//x[comment()[contains(.,'{0}')]]".format(keyword))
                 if found_node is not None and len(found_node) != 0:
                      for node in found_node:
-                        print("Found in comment, tag {0}".format(parent.name))
+                        # print("Found in comment, tag {0}".format(parent.name))
                         noscript = self.closeNoscript(node)
                         d = {"type": "comment", "parent": node.tag, "noscript": noscript}
                         if d not in entries:
@@ -623,11 +623,15 @@ class mod_xss(Attack):
         e = []
 
         if self.parser == "BS":
-            soup = BeautifulSoup(html_code, 'lxml')
-            self.study(soup, keyword=code, entries=e)
+            for i in range(2000):
+                e = []
+                soup = BeautifulSoup(html_code, 'lxml')
+                self.study(soup, keyword=code, entries=e)
         elif self.parser == "lxml":
-            tree = etree.HTML(html_code)
-            self.study(tree, keyword=code, entries=e)
+            for i in range(2000):
+                e = []
+                tree = etree.HTML(html_code)
+                self.study(tree, keyword=code, entries=e)
 
         payloads = []
 
