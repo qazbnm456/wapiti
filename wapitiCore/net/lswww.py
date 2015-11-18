@@ -18,7 +18,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 import sys
-import re
+try:
+    import re2 as re
+except ImportError:
+    import re
+else:
+    re.set_fallback_notification(re.FALLBACK_WARNING)
 import socket
 import os
 import HTMLParser
@@ -284,7 +289,7 @@ class lswww(object):
             return False
 
         html_source = data
-        bs = BeautifulSoup(html_source)
+        bs = BeautifulSoup(html_source, 'lxml')
         # Look for a base tag with an href attribute
         if bs.head:
             for base in bs.head.findAll("base"):
@@ -302,7 +307,7 @@ class lswww(object):
         try:
             p.feed(html_source)
         except HTMLParser.HTMLParseError:
-            html_source = BeautifulSoup(html_source).prettify()
+            html_source = BeautifulSoup(html_source, 'lxml').prettify()
             if not isinstance(html_source, unicode) and page_encoding is not None:
                 html_source = unicode(html_source, page_encoding, errors='ignore')
             try:
@@ -317,7 +322,7 @@ class lswww(object):
         if len(p.liens) == 0:
             if page_encoding is not None:
                 try:
-                    html_source = BeautifulSoup(html_source).prettify(page_encoding)
+                    html_source = BeautifulSoup(html_source, 'lxml').prettify(page_encoding)
                     p.reset()
                     p.feed(html_source)
                 except UnicodeEncodeError:

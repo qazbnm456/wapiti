@@ -24,6 +24,10 @@ import os
 from wapitiCore.net import HTTP
 import requests
 
+from progressbar import AnimatedMarker, Bar, BouncingBar, Counter, ETA, \
+    FileTransferSpeed, FormatLabel, Percentage, \
+    ProgressBar, ReverseBar, RotatingMarker, \
+    SimpleProgress, Timer, AdaptiveETA, AdaptiveTransferSpeed
 
 class mod_buster(Attack):
     """
@@ -31,16 +35,17 @@ class mod_buster(Attack):
     """
 
     payloads = []
-    CONFIG_FILE = "busterPayloads.txt"
 
     name = "buster"
+    CONFIG_FILE = ""
+    pbar = ""
 
     doGET = False
     doPOST = False
 
     def __init__(self, http, xmlRepGenerator):
         Attack.__init__(self, http, xmlRepGenerator)
-        self.payloads = self.loadPayloads(os.path.join(self.CONFIG_DIR, self.CONFIG_FILE))
+
         self.known_dirs = []
         self.known_pages = []
         self.new_resources = []
@@ -54,7 +59,8 @@ class mod_buster(Attack):
             if resp.getCode() not in ["403", "404"]:
                 # we don't want to deal with this at the moment
                 return
-            for candidate in self.payloads:
+            for i, candidate in enumerate(self.payloads):
+                self.pbar.update(i + 1)
                 url = path + candidate
                 if url not in self.known_dirs and url not in self.known_pages and url not in self.new_resources:
                     page = HTTP.HTTPResource(path + candidate)
@@ -76,6 +82,27 @@ class mod_buster(Attack):
             pass
 
     def attack(self, urls, forms):
+        #Load ProgressBar
+        widgets = [
+            Percentage(),
+            ' ', Bar(),
+            ' ', ETA(),
+            ' ', AdaptiveETA(),
+            ' ', AdaptiveTransferSpeed(),
+        ]
+        # Load config file...
+        user_input = raw_input("[*] Use [E]lite, [G]reat or [N]ormal buster payload?\n")
+        if user_input == "E":
+            self.CONFIG_FILE = "busterElitePayloads.txt"
+            self.pbar = ProgressBar(widgets=widgets, maxval=1292)
+        elif user_input == "G":
+            self.CONFIG_FILE = "busterGreatPayloads.txt"
+            self.pbar = ProgressBar(widgets=widgets, maxval=7372)
+        else:
+            self.CONFIG_FILE = "busterPayloads.txt"
+            self.pbar = ProgressBar(widgets=widgets, maxval=45524)
+        self.payloads = self.loadPayloads(os.path.join(self.CONFIG_DIR, self.CONFIG_FILE))
+        
         # First we make a list of uniq webdirs and webpages without parameters
         for res in urls:
             path = res.path
@@ -99,3 +126,4 @@ class mod_buster(Attack):
                 self.test_directory(current_res)
             else:
                 self.known_pages.append(current_res)
+        self.pbar.finish()

@@ -29,6 +29,10 @@ from lxml import etree
 import subprocess
 import tempfile
 import urllib
+from progressbar import AnimatedMarker, Bar, BouncingBar, Counter, ETA, \
+    FileTransferSpeed, FormatLabel, Percentage, \
+    ProgressBar, ReverseBar, RotatingMarker, \
+    SimpleProgress, Timer, AdaptiveETA, AdaptiveTransferSpeed
 
 class mod_xss(Attack):
     """This class implements a cross site scripting attack"""
@@ -47,6 +51,7 @@ class mod_xss(Attack):
     php_self_check = "<script>phpselfxss()</script>"
 
     name = "xss"
+    pbar = ""
 
     # two dict exported for permanent XSS scanning
     # GET_XSS structure :
@@ -172,7 +177,8 @@ class mod_xss(Attack):
                 if code in data:
                     # Simple text injection worked, let's try with JS code
                     payloads = self.generate_payloads(data, code)
-                    for payload in payloads:
+                    for i, payload in enumerate(payloads):
+                        self.pbar.update(i + 1)
                         evil_req = HTTP.HTTPResource(page + "?" + self.HTTP.quote(payload))
                         if self.verbose == 2:
                             print(u"+ {0}".format(evil_req))
@@ -260,6 +266,7 @@ class mod_xss(Attack):
                         # YES! But where exactly ?
                         payloads = self.generate_payloads(data, code)
                         for payload in payloads:
+                            self.pbar.update(i + 1)
 
                             params_list[i][1] = payload
 
@@ -437,6 +444,7 @@ class mod_xss(Attack):
                         # found, now study where the payload is injected and how to exploit it
                         payloads = self.generate_payloads(data, code)
                         for payload in payloads:
+                            self.pbar.update(i + 1)
                             if params_list is file_params:
                                 params_list[i][1][0] = payload
                             else:
@@ -607,7 +615,7 @@ class mod_xss(Attack):
                             if d not in entries:
                                 entries.append(d)
             else:
-                found_node = bsnode.xpath("//x[comment()[contains(.,'{0}')]]".format(keyword))
+                found_node = bs_node.xpath("//x[comment()[contains(.,'{0}')]]".format(keyword))
                 if found_node is not None and len(found_node) != 0:
                      for node in found_node:
                         # print("Found in comment, tag {0}".format(parent.name))
@@ -623,15 +631,11 @@ class mod_xss(Attack):
         e = []
 
         if self.parser == "BS":
-            for i in range(2000):
-                e = []
-                soup = BeautifulSoup(html_code, 'lxml')
-                self.study(soup, keyword=code, entries=e)
+            soup = BeautifulSoup(html_code, 'lxml')
+            self.study(soup, keyword=code, entries=e)
         elif self.parser == "lxml":
-            for i in range(2000):
-                e = []
-                tree = etree.HTML(html_code)
-                self.study(tree, keyword=code, entries=e)
+            tree = etree.HTML(html_code)
+            self.study(tree, keyword=code, entries=e)
 
         payloads = []
 
@@ -747,4 +751,13 @@ class mod_xss(Attack):
                         payloads.append(js_code)
 
             html_code = html_code.replace(code, "none", 1)  # Reduce the research zone
+        #Load ProgressBar
+        widgets = [
+            Percentage(),
+            ' ', Bar(),
+            ' ', ETA(),
+            ' ', AdaptiveETA(),
+            ' ', AdaptiveTransferSpeed(),
+        ]
+        self.pbar = ProgressBar(widgets=widgets, maxval=len(payloads))
         return payloads

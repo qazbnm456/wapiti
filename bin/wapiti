@@ -507,7 +507,7 @@ if __name__ == "__main__":
 
             wap.setNice(args.repeat_limit)
 			# if "fingerprint" module is loaded, set MaxDepth to zero
-            if "fingerprint" in args.modules:
+            if args.modules is not None and "fingerprint" in args.modules:
                 wap.setMaxDepth(0)
             else:
                 wap.setMaxDepth(args.depth)
